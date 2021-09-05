@@ -1,0 +1,46 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+ paths:
+   include:
+     - AnalyticsRules/*
+
+stages:
+- stage: build_alert_rules
+
+  jobs:
+    - job: AgentJob
+      pool:
+       name: default
+      steps:
+       - task: CopyFiles@2
+         displayName: 'Copy Alert Rules'
+         inputs:
+          SourceFolder: AnalyticsRules
+          TargetFolder: '$(Pipeline.Workspace)'
+
+- stage: deploy_alert_rules
+  jobs:
+    - job: AgentJob
+      pool:
+       name: default
+      variables: 
+      - group: Az connection settings
+      steps:
+      - task: CmdLine@2
+        inputs:
+          script: |
+            echo $(System.ArtifactsDirectory)
+            dir
+      - task: AzurePowerShell@4
+        displayName: 'Create and Update Alert Rules'
+        inputs:
+          azureSubscription: 'AzureSentinelTest'
+          ScriptType: 'FilePath'
+          ScriptPath: '$(Pipeline.Workspace)/s/Scripts/CreateAnalyticsRules.ps1'
+          ScriptArguments: '-Workspace ABCCORP -RulesFile C:\Users\hari\Downloads\vsts-agent-win-x64-2.189.0\agent\agent\_work\1\s\AnalyticsRules\rules.json'
+          azurePowerShellVersion: 'LatestVersion'
+          pwsh: true
